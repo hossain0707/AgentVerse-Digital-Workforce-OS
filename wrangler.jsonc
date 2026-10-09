@@ -1,9 +1,16 @@
 {
-  // AgentVerse animated concept demo only.
-  // No FastAPI backend, database, API keys, or private source files are served.
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agentverse-digital-workforce-os",
   "compatibility_date": "2026-10-09",
+  "main": "./worker/index.mjs",
   "assets": {
-    "directory": "./public"
-  }
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": { "binding": "AI" },
+  "ratelimits": [
+    {"name":"PER_IP","namespace_id":"690101","simple":{"limit":2,"period":60}},
+    {"name":"GLOBAL_AI","namespace_id":"690102","simple":{"limit":12,"period":60}}
+  ]
 }

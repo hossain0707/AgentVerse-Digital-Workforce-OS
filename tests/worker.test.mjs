@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import worker from '../worker/index.mjs';
+const url='https://agentverse.example.test/api/engine/run';
+const env={AI:{run:async(_,cfg)=>({response:'Here is a reviewable work plan.'})},PER_IP:{limit:async()=>({success:true})},GLOBAL_AI:{limit:async()=>({success:true})}};
+const data={role:'Research assistant',instructions:'Use references',lessons:'Source policy: cite findings',task:'Write a research outline for telecom battery safety.'};
+const req=(payload=data,origin='https://agentverse.example.test',method='POST')=>new Request(url,{method,headers:{Origin:origin,'Content-Type':'application/json'},body:method==='POST'?JSON.stringify(payload):undefined});
+test('status reports configured capability not fake claims',async()=>{const res=await worker.fetch(new Request('https://agentverse.example.test/api/engine/status'),env);assert.equal(res.status,200);assert.equal((await res.json()).ai,true);});
+test('valid AI task calls model once and gives actual model response',async()=>{const res=await worker.fetch(req(),env);assert.equal(res.status,200);const o=await res.json();assert.match(o.output,/reviewable work plan/);assert.equal(o.mode,'real-ai');});
+test('deny cross-origin and malformed requests',async()=>{assert.equal((await worker.fetch(req(data,'https://evil.example'),env)).status,403);assert.equal((await worker.fetch(req({...data,task:'no'}),env)).status,422);assert.equal((await worker.fetch(new Request(url,{method:'GET'}),env)).status,405);});
+test('fail closed for unconfigured rate limiter',async()=>{const res=await worker.fetch(req(),{...env,PER_IP:null});assert.equal(res.status,503);});
+test('enforce shared quota',async()=>{const res=await worker.fetch(req(),{...env,GLOBAL_AI:{limit:async()=>({success:false})}});assert.equal(res.status,429);});
+test('hide provider details on failure',async()=>{const res=await worker.fetch(req(),{...env,AI:{run:async()=>{throw Error('SECRET_ACCOUNT_DETAILS');}}});assert.equal(res.status,503);assert.doesNotMatch(await res.text(),/SECRET/);});

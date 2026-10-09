@@ -1,0 +1,11 @@
+{
+  "name":"AgentVerse Digital Employee Workspace",
+  "short_name":"AgentVerse",
+  "description":"Create, teach and employ free AI digital employees with local-first memory.",
+  "start_url":"/workspace.html",
+  "scope":"/",
+  "display":"standalone",
+  "background_color":"#09111f",
+  "theme_color":"#09111f",
+  "icons":[{"src":"/agentverse-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

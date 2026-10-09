@@ -1,11 +1,17 @@
 # AgentVerse — Digital Workforce OS
 
+## Free public workspace (v0.3 beta)
+
+**Public:** [Open the free AgentVerse digital employee workspace](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/workspace.html) (availability is subject to Cloudflare deployment). Visitors can create/edit their own digital employees, teach prompt-memory lessons, assign real AI tasks on the limited Cloudflare Workers AI Free allocation, use offline structured tools, and export/import portable JSON backups. There are **no payments, login requirements, or central server-side user data** in this public beta. This is a local-first web app, not a production multi-tenant service; browser data is device-specific. **Please export backups regularly and never enter confidential information.** See [free public beta scope and safety](docs/FREE_PUBLIC_BETA.md).
+
+The [animated digital world](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/) and [investor demo](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/investor.html) remain available. The separate FastAPI operational prototype at `/start` is **not** published; it requires identity, secure tenancy and production hardening before internet access.
+
 **A v0.2 local operational prototype**, plus the immersive animated full-ecosystem concept world. The platform implements persistent employee identities, a talent marketplace, rental contracts, permanent ownership transfers, evidence-reviewed training, attribution and trainer rewards, employer-isolated memory, work assignment, a model-provider execution option, and an optional local MCP integration.
 
 **This is not a 100% production-ready autonomous-agent marketplace.** It contains concrete working flows, not real university credentials, autonomous self-training, cash processing, or public-hosted ChatGPT app approval.
 
 
-> **Deployment separation:** The animated Cloudflare site publishes only `public/index.html`; it is **not** the buyer marketplace backend. The authenticated buyer workspace at `/start` runs locally with FastAPI and simulated credits. Do not deploy the backend until the security gates in [SECURITY.md](SECURITY.md) are complete.
+> **Deployment separation:** The public Cloudflare site publishes static `public/` assets plus a small, separately rate-limited Workers AI gateway. It is **not** the FastAPI buyer marketplace backend. The authenticated buyer workspace at `/start` runs locally with FastAPI and simulated credits. Do not deploy the backend until the security gates in [SECURITY.md](SECURITY.md) are complete.
 
 ## New in prototype v0.2
 

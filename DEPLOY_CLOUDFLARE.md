@@ -1,28 +1,19 @@
-# Deploy AgentVerse animated world to Cloudflare Workers (free-plan static assets)
+# Cloudflare deployment — AgentVerse free public beta
 
-This guide deploys **only** the static animated simulator at `public/index.html`.
-The Python/FastAPI backend, marketplace API, database, MCP bridge, demo user accounts, and optional model provider are **not deployed**. The animated life events and purchases are examples, not real-time agent operations.
+The current build contains the existing animated world, investor preview and a real local-first customer workspace. Deploy **from the repository root** (`./`, not `./public`). The Wrangler configuration at root chooses only `public/` as static assets and `worker/index.mjs` as the isolated optional AI gateway. The Python FastAPI backend must never be exposed.
 
-## Cloudflare dashboard: deploy from your private GitHub repository
+**GitHub repo:** private `hossain0707/AgentVerse-Digital-Workforce-OS`; branch `main`. **Cloudflare service:** `agentverse-digital-workforce-os`. **Build command:** blank; **deploy:** `npx wrangler deploy`. **Plan:** Free only. Keep automatic upgrades, paid bindings, paid models, credit cards, add-ons and payments disabled.
 
-1. In [Cloudflare](https://dash.cloudflare.com/), go to **Compute (Workers & Pages)**, then **Create application** and connect a Git repository to **Workers**.
-2. Select `hossain0707/AgentVerse-Digital-Workforce-OS` and branch `main`.
-3. Use project name `agentverse-digital-workforce-os` (match `wrangler.jsonc`).
-4. Set **Build command** to blank (no build required).
-5. Set **Deploy command** to `npx wrangler deploy`.
-6. Select the **Free** plan and do **not** enable any paid add-ons or purchase a domain.
-7. Click **Deploy**, wait for a successful build, then open the exact `*.workers.dev` URL provided by Cloudflare.
+Worker bindings must be created by the Wrangler deployment: `AI` (Workers AI model `@cf/meta/llama-3.1-8b-instruct-fp8`), and two rate limits `PER_IP`, `GLOBAL_AI`, defined in `wrangler.jsonc`. If the deploy fails, fix the **root directory** first: `./`. Do not configure `./public` as build root; that is only the published **asset directory**.
 
-The checked-in `wrangler.jsonc` tells Wrangler to publish only `./public` as static assets. Cloudflare Workers Builds may automatically deploy future commits to the connected `main` branch.
+Verify these:
 
-## Verification after deployment
+- `/` — animated concept site, plus link to workspace
+- `/investor.html` — simulated investor walkthrough, plus link to workspace
+- `/workspace.html` — create/edit/teach/export/import agents; offline tool succeeds
+- `/api/engine/status` — JSON response; `ai:true` only if all free bindings are present
+- `POST /api/engine/run` from the same-origin workspace — live inference; never publish/demo passwords or external API keys
 
-- The root URL loads the animated AgentVerse simulation and shows the moving world.
-- There is **no public Python API** at `/api/` and no real purchasing, payments, or real autonomous learning.
-- Review Cloudflare plan/usage to ensure no paid services were enabled.
+Cloudflare Workers AI Free allocation is limited; once exhausted, requests fail and users can use offline tools. The app stores all histories **only locally in each visitor's browser**. See [docs/FREE_PUBLIC_BETA.md](docs/FREE_PUBLIC_BETA.md).
 
-## Security and project boundaries
-
-Do not deploy `AGENTVERSE_DEMO=1` publicly; it contains fixed sample accounts/passwords and an unreviewed authentication model. Real hosting of the marketplace requires a dedicated secure service and persistent production database, HTTPS/OAuth, audited authorization and storage, model provider keys, rate limiting, tests, and billing legal review.
-
-Project owner: **Md Najmul Hossain**.
+No feature here should ever require checkout or payment. **Do not deploy `agentverse/app.py` publicly.**

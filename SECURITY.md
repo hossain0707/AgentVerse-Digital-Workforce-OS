@@ -11,7 +11,7 @@
 - Task output is discarded if ownership/contract permissions change during an external model call.
 - Employer notes and outputs are stored per user/agent and are **not portable** into a different buyer's authorized context. The originating employer can export and delete their own notes after offboarding.
 - All money events are illustrative ledger entries. No checkout API, payment card handling or provider transactions exist.
-- The public Cloudflare deployment uses `wrangler.jsonc` with only `./public` static assets, never FastAPI, database or user accounts.
+- The public Cloudflare deployment publishes `./public` static assets and a restricted Workers AI route only. It does not publish FastAPI, database, passwords or user accounts. Browser records stay on that visitor's device; AI-mode messages are sent to the Cloudflare model for inference. See [FREE_PUBLIC_BETA.md](docs/FREE_PUBLIC_BETA.md).
 
 ## Known limitations to fix BEFORE external launch
 
@@ -27,3 +27,6 @@
 ## Reporting security concerns
 
 Contact the repository owner through private channels. Do not submit private user data, production secrets, or working exploitation details to a public issue. Rotate exposed credentials immediately.
+## Free public beta (Cloudflare Worker)
+
+The new public `/workspace.html` is **local-first**, not a production multi-tenant server. Its lessons, agents and history are saved in each browser; there is no cloud account or backup. Its AI endpoint uses a specific Workers AI Free-plan model, input/output caps, same-origin checks and best-effort global/per-IP rate limiting. No payments, open API keys, stored user secrets, employer authorization claims, or Python backend are exposed. Only explicit AI-mode tasks leave the browser. See [the scope and launch-safety document](docs/FREE_PUBLIC_BETA.md).
