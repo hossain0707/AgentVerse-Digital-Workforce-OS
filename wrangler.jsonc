@@ -1,0 +1,9 @@
+{
+  // AgentVerse animated concept demo only.
+  // No FastAPI backend, database, API keys, or private source files are served.
+  "name": "agentverse-digital-workforce-os",
+  "compatibility_date": "2026-10-09",
+  "assets": {
+    "directory": "./public"
+  }
+}
