@@ -14,6 +14,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+set AGENTVERSE_DEMO=1
 echo.
 echo AgentVerse starts at http://127.0.0.1:8000
 start "" http://127.0.0.1:8000

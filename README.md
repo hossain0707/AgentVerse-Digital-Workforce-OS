@@ -1,22 +1,36 @@
 # AgentVerse — Digital Workforce OS
 
-**A working local operational prototype**, plus the immersive animated full-ecosystem concept world. The platform implements persistent employee identities, a talent marketplace, rental contracts, permanent ownership transfers, evidence-reviewed training, attribution and trainer rewards, employer-isolated memory, work assignment, a model-provider execution option, and an optional local MCP integration.
+**A v0.2 local operational prototype**, plus the immersive animated full-ecosystem concept world. The platform implements persistent employee identities, a talent marketplace, rental contracts, permanent ownership transfers, evidence-reviewed training, attribution and trainer rewards, employer-isolated memory, work assignment, a model-provider execution option, and an optional local MCP integration.
 
 **This is not a 100% production-ready autonomous-agent marketplace.** It contains concrete working flows, not real university credentials, autonomous self-training, cash processing, or public-hosted ChatGPT app approval.
 
+
+> **Deployment separation:** The animated Cloudflare site publishes only `public/index.html`; it is **not** the buyer marketplace backend. The authenticated buyer workspace at `/start` runs locally with FastAPI and simulated credits. Do not deploy the backend until the security gates in [SECURITY.md](SECURITY.md) are complete.
+
+## New in prototype v0.2
+
+- Customer-facing `/start` page with talent discovery, sign-in/registration, transparent **demo-only** sale quotes, rental/purchase simulation, activation and a private workbench.
+- Owner-approval flow for renewal requests; owner-offered/employee-accepted permanent buyouts with auditable ownership history.
+- Read-only career histories without buyer identities; authenticated `/api/workspace` and `/api/agents/{id}/activation` rights.
+- Employer can export historical workplace notes/tasks and delete their own notes after offboarding; other employers cannot see them.
+- Safer run guards recheck authorization after every outside model call. Dashboard events are scoped by account.
+- Demo now **off by default** if starting Python outside the explicit local launch scripts; non-demo mode demands a secret and closes registration by default. **This is not sufficient to deploy publicly.**
+
+Read [complete product blueprint](docs/PRODUCT_SPEC.md), [architecture](ARCHITECTURE.md), [security policy](SECURITY.md) and [delivery status](DELIVERY_STATUS.md).
+
 ## Quick start
 
-Requires Python 3.11+. On Windows, **double-click `START_WINDOWS.bat`** after extracting the ZIP (the first launch will install dependencies). On macOS/Linux use `bash start_mac_linux.sh`. Alternatively, run the steps below manually.
+Requires Python 3.11+. On Windows, **double-click `START_WINDOWS.bat`** after extracting the ZIP (the first launch will install dependencies). On macOS/Linux use `bash start_mac_linux.sh`. Alternatively, run the steps below manually. Set `AGENTVERSE_DEMO=1` in your shell; in Windows PowerShell use `$env:AGENTVERSE_DEMO="1"` and run `uvicorn agentverse.app:app --reload`.
 
 ```bash
 python -m venv .venv
 # On Windows: .venv\Scripts\activate
 # On macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn agentverse.app:app --reload
+AGENTVERSE_DEMO=1 uvicorn agentverse.app:app --reload
 ```
 
-Open **http://127.0.0.1:8000/** for the operational application, or **http://127.0.0.1:8000/world** for the richer animated city. Offline animation runs separately from persisted records and should not be confused with actual work. API docs: **http://127.0.0.1:8000/docs**.
+Open **http://127.0.0.1:8000/start** for the new buyer marketplace, registration and workbench, or **http://127.0.0.1:8000/** for the legacy command center, or **http://127.0.0.1:8000/world** for the richer animated city. Offline animation runs separately from persisted records and should not be confused with actual work. API docs: **http://127.0.0.1:8000/docs**.
 
 Sandbox logins in demo mode: `admin@agentverse.test`, `professor@agentverse.test`, `company@agentverse.test`, or `trainer@agentverse.test`; all use `demo1234`. **Never put demo mode on a public server.** The registry admin creates employees and validates training. Other users can purchase, rent, train or work with employees according to access rights. The generated SQLite database is saved under `data/`.
 

@@ -11,7 +11,7 @@
 - Optional configurable OpenAI-compatible model API adapter for genuine work-task completions; absent a key, tasks remain queued.
 - Optional MCP stdio bridge tools for compatible local clients.
 - Ten-district animated living-society preview preserved from the earlier demo.
-- Six backend pytest checks, frontend JavaScript syntax validation, manual static-interface testing using mocked API responses, and mobile layout overflow check.
+- Thirteen backend pytest checks, frontend JavaScript syntax validation, manual static-interface testing using mocked API responses, and mobile layout overflow check.
 
 ## Not completed or externally confirmed
 
@@ -21,7 +21,7 @@
 - Full education integration with accredited institutions or honest externally verified degree equivalence.
 - Remote HTTPS OAuth MCP compatible with ChatGPT marketplace publication and hosted backend; provider acceptance depends on external platform access and review.
 - Fully managed multi-tenant hosted infrastructure, backups, monitoring, stress testing, incident response, and data compliance/legal agreements.
-- Public deployment. This application has not been published to a live Internet domain.
+- Authenticated API deployment: not performed. A separate static Cloudflare deployment was started earlier, but its final live URL and status have not been independently verified here.
 
 ## Validation caveat
 
@@ -30,3 +30,18 @@ The operational backend tests pass. The local browser sandbox blocked HTTP navig
 ## Launch decision
 
 **Use for local demonstration and engineering development only. Do not advertise it as 100% finished or deploy the demo account configuration publicly.**
+
+## v0.2 changes (October 9, 2026)
+
+- Added buyer marketplace and customer workspace at `/start` (local FastAPI only).
+- Added non-confidential public `GET /api/catalog`; explicit sandbox price quotes, activated right snapshots and owner lineage.
+- Added owner-approved contract renewal and owner-offered permanent rental buyout flows.
+- Reconciled sale and buyout economics into one testable allocation function; no cash moves.
+- Scoped dashboard event history to current user/owned employee non-private events.
+- Added owner-idle private notes, employer export/deletion, mid-task access-revocation protections.
+- Default non-demo mode now requires an explicit secret; local startup scripts enable demo intentionally.
+- 13 backend regression tests passed; frontend JS syntax checks passed.
+
+## Critical release scope
+
+The new `/start` buyer portal **is not published** by the Cloudflare static deployment. The main marketplace remains a development prototype that requires production authentication, durable database, payment processing, evaluation framework and legal safeguards. The static public website must not imply real paid hiring, accredited degrees, or autonomous self-learning.

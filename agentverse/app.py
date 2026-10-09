@@ -11,11 +11,15 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from .commerce import quote_sale
+from .changes import ADDITIONAL_SCHEMA
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(os.getenv('AGENTVERSE_DB', str(ROOT / 'data' / 'agentverse.db')))
-DEMO = os.getenv('AGENTVERSE_DEMO', '1') == '1'
+DEMO = os.getenv('AGENTVERSE_DEMO', '0') == '1'
 SECRET = os.getenv('AGENTVERSE_SECRET') or secrets.token_hex(32)
+if not DEMO and (len(os.getenv('AGENTVERSE_SECRET', '')) < 32):
+    raise RuntimeError('Non-demo use requires an explicit AGENTVERSE_SECRET of at least 32 characters')
 STAGES = ['Origin','Primary Academy','Secondary Academy','University','Graduate Research','Professional Training','Marketplace','Working','Career Transition','Resale Ready']
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, kind TEXT NOT NULL, passhash TEXT NOT NULL);
@@ -63,6 +67,7 @@ def db():
 def seed():
     with db() as c:
         c.executescript(SCHEMA)
+        c.executescript(ADDITIONAL_SCHEMA)
         if not DEMO or c.execute('SELECT 1 FROM users LIMIT 1').fetchone(): return
         users=[('platform','admin@agentverse.test','AgentVerse Registry','platform'),('professor','professor@agentverse.test','Professor Mira','buyer'),
                ('company','company@agentverse.test','Astra Research Labs','company'),('trainer','trainer@agentverse.test','Dr. Selene Trainer','trainer')]
@@ -126,6 +131,18 @@ def actor(authorization: str | None=Header(default=None)):
     except Exception: pass
     fail(401,'Invalid or expired token')
 
+def transfer(c, aid: str, old_owner: str, new_owner: str, amount: int, kind: str) -> dict:
+    """Atomic simulation ledger and ownership lineage; caller changes owner within same transaction."""
+    allocation=quote_sale(c,aid,old_owner,new_owner,amount)
+    ledger(c,aid,kind,new_owner,old_owner,amount,'Simulated gross employee transfer')
+    ledger(c,aid,'platform_commission',old_owner,'platform',allocation['platform_fee'],'10% illustrative platform fee')
+    for trainer_id,award in allocation['trainer_rewards'].items():
+        ledger(c,aid,'trainer_reward',old_owner,trainer_id,award,'Verified contribution award from proposed 5% pool')
+    ledger(c,aid,'seller_proceeds',new_owner,old_owner,allocation['seller_proceeds'],'Simulated seller allocation')
+    c.execute('INSERT INTO ownership_history VALUES(?,?,?,?,?,?,?)',
+              (ident('oh'),aid,old_owner,new_owner,kind,amount,now()))
+    return allocation
+
 class Credentials(BaseModel):
     email: str
     password: str
@@ -139,6 +156,10 @@ class NewAgent(BaseModel):
 class Rental(BaseModel):
     months: Literal[1,3,6,12,24]=12
 class Price(BaseModel):
+    price: int=Field(ge=100,le=100000000)
+class Renewal(BaseModel):
+    months: Literal[1,3,6,12,24]=12
+class BuyoutOffer(BaseModel):
     price: int=Field(ge=100,le=100000000)
 class Lesson(BaseModel):
     course: str=Field(min_length=3,max_length=120)
@@ -155,16 +176,21 @@ async def lifespan(_: FastAPI):
     seed()
     yield
 
-app=FastAPI(title='AgentVerse Operational Prototype',version='0.1.0',description='Real persisted workflows; synthetic payments; not yet production-ready',lifespan=lifespan)
+app=FastAPI(title='AgentVerse Operational Prototype',version='0.2.0',description='Real persisted workflows; synthetic payments; not yet production-ready',lifespan=lifespan)
 app.mount('/static',StaticFiles(directory=str(ROOT/'static')),name='static')
 @app.get('/')
 def home(): return FileResponse(ROOT/'static'/'index.html')
 @app.get('/world')
 def world(): return FileResponse(ROOT/'static'/'world.html')
+@app.get('/start')
+def start(): return FileResponse(ROOT/'static'/'customer.html')
 @app.get('/api/status')
 def status(): return {'service':'AgentVerse','storage':'SQLite','mode':'demo' if DEMO else 'restricted','payments':'simulation only','model_connected':bool(os.getenv('AGENTVERSE_MODEL_KEY'))}
 @app.post('/api/auth/register')
 def register(info:Register):
+    if not DEMO and os.getenv('AGENTVERSE_ALLOW_REGISTRATION') != '1':
+        fail(503,'Public registration disabled until production identity verification is configured')
+    if len(info.password) < 12:fail(422,'Password must be at least 12 characters')
     with db() as c:
         if c.execute('SELECT 1 FROM users WHERE email=?',(info.email.lower().strip(),)).fetchone(): fail(409,'Email already registered')
         uid=ident('u');c.execute('INSERT INTO users VALUES(?,?,?,?,?)',(uid,info.email.lower().strip(),info.name,info.kind,password_hash(info.password)))
@@ -185,7 +211,14 @@ def dashboard(u=Depends(actor)):
         contracts=c.execute("SELECT COUNT(*) FROM contracts WHERE status='active'").fetchone()[0]
         courses=c.execute("SELECT COUNT(*) FROM training WHERE status='verified'").fetchone()[0]
         volume=c.execute("SELECT COALESCE(SUM(amount),0) FROM ledger WHERE kind IN ('sale','rental')").fetchone()[0]
-        ev=[dict(r) for r in c.execute('SELECT action,detail,created_at FROM events ORDER BY created_at DESC LIMIT 12').fetchall()]
+        # Dashboard activity must never disclose events from an unrelated workplace.
+        if u['kind']=='platform':
+            ev=[dict(r) for r in c.execute('SELECT action,detail,created_at FROM events ORDER BY created_at DESC LIMIT 12').fetchall()]
+        else:
+            ev=[dict(r) for r in c.execute('''SELECT e.action,e.detail,e.created_at FROM events e
+              WHERE e.actor_id=? OR (e.agent_id IN (SELECT id FROM agents WHERE owner_id=?)
+              AND e.action NOT IN ('memory_saved','task_completed','task_queued','training_submitted'))
+              ORDER BY e.created_at DESC LIMIT 12''',(u['id'],u['id'])).fetchall()]
     return {'agents':agents,'active_contracts':contracts,'verified_lessons':courses,'volume':volume,'events':ev}
 @app.get('/api/agents')
 def agents(view:Literal['all','mine','available']='all',u=Depends(actor)):
@@ -236,24 +269,10 @@ def buy(aid:str,u=Depends(actor)):
         if not a['listed']:fail(409,'Employee not listed')
         if active(c,aid):fail(409,'Employee has an active rental')
         if a['owner_id']==u['id']:fail(400,'Already owned by this account')
-        total=a['price'];platform_cut=total*10//100;pool=total*5//100
-        scores=c.execute("SELECT trainer_id,SUM(credits) as credits FROM training WHERE agent_id=? AND status='verified' GROUP BY trainer_id",(aid,)).fetchall()
-        scores=[r for r in scores if r['trainer_id']!=a['owner_id'] and r['trainer_id']!=u['id']]
-        credits=sum(r['credits'] for r in scores)
-        payouts={};paid=0
-        if credits:
-            for r in scores:
-                award=pool*r['credits']//credits; payouts[r['trainer_id']]=award; paid+=award
-        # If no eligible trainers, undistributed pool stays with seller. No phantom trainer payouts.
-        seller_amount=total-platform_cut-paid
-        ledger(c,aid,'sale',u['id'],a['owner_id'],total,'Simulated gross permanent transfer')
-        ledger(c,aid,'platform_commission',a['owner_id'],'platform',platform_cut,'10% hypothetical platform fee')
-        for trainer_id,award in payouts.items():
-            if award:ledger(c,aid,'trainer_reward',a['owner_id'],trainer_id,award,'Verified training contribution, 5% pool')
-        ledger(c,aid,'seller_proceeds',u['id'],a['owner_id'],seller_amount,'Simulated net seller allocation')
+        allocation = transfer(c, aid, a['owner_id'], u['id'], a['price'], 'sale')
         c.execute('UPDATE agents SET owner_id=?,listed=0 WHERE id=?',(u['id'],aid))
         event(c,aid,u['id'],'sold','Permanent title transferred; employer notes remain isolated')
-    return {'agent_id':aid,'buyer':u['id'],'gross':total,'platform_fee':platform_cut,'trainer_rewards':payouts,'seller_proceeds':seller_amount,'settlement':'SIMULATED—no funds transferred'}
+    return {'agent_id':aid,'buyer':u['id'],**allocation,'settlement':'SIMULATED—no funds transferred'}
 @app.post('/api/agents/{aid}/rent')
 def rent(aid:str,info:Rental,u=Depends(actor)):
     with db() as c:
@@ -322,7 +341,12 @@ def review(tid:str,info:Approve,u=Depends(actor)):
 @app.post('/api/agents/{aid}/memory')
 def save_memory(aid:str,info:Note,u=Depends(actor)):
     with db() as c:
-        require_access(c,u,aid,employer=True)
+        a=require_access(c,u,aid)
+        contract=active(c,aid)
+        if contract and contract['employer_id']!=u['id']:
+            fail(403,'Another employer controls this employee workplace')
+        if not contract and a['owner_id']!=u['id'] and u['kind']!='platform':
+            fail(403,'Only the current owner can use an idle employee')
         c.execute('INSERT INTO vault VALUES(?,?,?,?,?)',(ident('m'),aid,u['id'],info.note,now()))
         event(c,aid,u['id'],'memory_saved','Employer-private note saved to isolated vault')
     return {'stored':True,'scope':'employer-private','portable':False}
@@ -332,7 +356,7 @@ def context(aid:str,u=Depends(actor)):
         a=require_access(c,u,aid)
         current=active(c,aid)
         # Accessible on the runtime only for the active employer; owner never reads another employer's notes.
-        scoped=(current is not None and current['employer_id']==u['id'])
+        scoped=(current is not None and current['employer_id']==u['id']) or (current is None and a['owner_id']==u['id'])
         notes=[{'note':r['note'],'created_at':r['created_at']} for r in c.execute('SELECT note,created_at FROM vault WHERE agent_id=? AND employer_id=? ORDER BY created_at DESC LIMIT 30',(aid,u['id'])).fetchall()] if scoped else []
         courses=[r['course'] for r in c.execute("SELECT course FROM training WHERE agent_id=? AND status='verified'",(aid,)).fetchall()]
     return {'id':aid,'name':a['name'],'track':a['track'],'skill':a['skill'],'verified_courses':courses,'employer_context':notes,
@@ -384,6 +408,13 @@ The user instruction follows.'''
     except Exception as ex:
         fail(502,f'Language model provider error: {type(ex).__name__}')
     with db() as c:
+        # A contract may have ended while the external model processed the request.
+        latest=c.execute('SELECT * FROM tasks WHERE id=?',(tid,)).fetchone()
+        current=active(c,row['agent_id'])
+        agent=get_agent(c,row['agent_id'])
+        if not latest or latest['status']!='queued' or (current and current['employer_id']!=u['id']) or (
+            current is None and agent['owner_id']!=u['id']):
+            fail(409,'Workplace authorization changed while the task was running; response not saved')
         c.execute('UPDATE tasks SET status=?,output=? WHERE id=?',('done',content[:50000],tid))
         event(c,row['agent_id'],u['id'],'task_completed','Real model response saved to the assigning workplace')
     return {'task_id':tid,'status':'done','output':content[:50000],'provider_model':model}
@@ -393,3 +424,207 @@ def get_ledger(u=Depends(actor)):
         if u['kind']=='platform': rows=c.execute('SELECT * FROM ledger ORDER BY created_at DESC LIMIT 100').fetchall()
         else:rows=c.execute('SELECT * FROM ledger WHERE from_id=? OR to_id=? ORDER BY created_at DESC LIMIT 100',(u['id'],u['id'])).fetchall()
     return {'currency':'USD cents (illustrative only)','cash_transferred':False,'entries':[dict(r) for r in rows]}
+
+# Buyer onboarding and commerce API: deliberately simulated until a regulated
+# payment/settlement integration and independent security review are completed.
+@app.get('/api/catalog')
+def catalog():
+    """Public product discovery with no employer names, tasks, or private memory."""
+    with db() as c:
+        refresh_expired(c)
+        rows=c.execute('''SELECT id,name,track,stage,skill,experience,price FROM agents
+            WHERE listed=1 AND id NOT IN
+            (SELECT agent_id FROM contracts WHERE status='active' AND expires>?)
+            ORDER BY skill DESC''',(now(),)).fetchall()
+        return {'items':[{**dict(a),'stage_name':STAGES[a['stage']],
+                          'price_currency':'DEMO_CREDITS','purchase_enabled':False}
+                          for a in rows],
+                'transactions_are_simulated':True,'public_payments_enabled':False,
+                'note':'Names, qualifications, and prices are sample digital employee listings.'}
+
+@app.get('/api/agents/{aid}/sale-quote')
+def sale_quote(aid:str,u=Depends(actor)):
+    with db() as c:
+        refresh_expired(c)
+        a=get_agent(c,aid)
+        if not a['listed'] or active(c,aid):fail(409,'Employee cannot be transferred at this time')
+        if a['owner_id']==u['id']:fail(400,'You already own this employee')
+        q=quote_sale(c,aid,a['owner_id'],u['id'],a['price'])
+        return {'agent_id':aid,'seller_id':a['owner_id'],**q,
+                'requires_real_checkout':False,'checkout_mode':'simulation_only',
+                'disclaimer':'No purchase, payment, or license transfer occurs when fetching a quote.'}
+
+@app.get('/api/workspace')
+def workspace(u=Depends(actor)):
+    """Only employees owned or assigned to the authenticated buyer."""
+    with db() as c:
+        refresh_expired(c)
+        owned=c.execute('SELECT id,name,track,skill FROM agents WHERE owner_id=?',(u['id'],)).fetchall()
+        employed=c.execute('''SELECT a.id,a.name,a.track,a.skill,co.expires FROM agents a
+             JOIN contracts co ON a.id=co.agent_id
+             WHERE co.employer_id=? AND co.status='active' AND co.expires>?''',(u['id'],now())).fetchall()
+        work=c.execute('SELECT COUNT(*) FROM tasks WHERE employer_id=?',(u['id'],)).fetchone()[0]
+        return {'account':dict(u),
+                'owned':[dict(r) for r in owned],
+                'currently_hired':[dict(r) for r in employed],
+                'my_task_count':work,
+                'model_provider_configured':bool(os.getenv('AGENTVERSE_MODEL_KEY')),
+                'checkout_mode':'simulation_only',
+                'integrations':['AgentVerse local workspace','Local MCP bridge (configure explicitly)'],
+                'remote_chatgpt_claude_connection_active':False}
+
+@app.get('/api/agents/{aid}/activation')
+def activation(aid:str,u=Depends(actor)):
+    """Compute effective rights on each request (not a transferable or reusable API secret)."""
+    with db() as c:
+        a=require_access(c,u,aid)
+        contract=active(c,aid)
+        is_employer=bool(contract and contract['employer_id']==u['id'])
+        is_idle_owner=bool(not contract and a['owner_id']==u['id'])
+        if not is_employer and not is_idle_owner:
+            fail(403,'Owner access pauses while employee is on contract')
+        return {'agent_id':aid,'employee':a['name'],'holder_id':u['id'],
+                'assignment':'contract' if is_employer else 'owned_idle',
+                'expires':contract['expires'] if is_employer else None,
+                'rights':['view_career','assign_tasks','save_private_notes','submit_training'],
+                'runtime':'AgentVerse local API',
+                'model_execution_available':bool(os.getenv('AGENTVERSE_MODEL_KEY')),
+                'remote_mcp_connected':False,
+                'instructions':'Open /start or use the local MCP adapter. Access is checked per API call; no model API key is issued by this endpoint.',
+                'demo_only':True}
+
+@app.get('/api/agents/{aid}/history')
+def ownership_history(aid:str,u=Depends(actor)):
+    """Career continuity without disclosing employer/private identifiers."""
+    with db() as c:
+        get_agent(c,aid)
+        rows=c.execute('''SELECT transfer_kind,price_credits,happened_at
+           FROM ownership_history WHERE agent_id=? ORDER BY happened_at DESC''',(aid,)).fetchall()
+        return {'agent_id':aid,'transfers':[dict(r) for r in rows],
+                'buyer_and_employer_identifiers_disclosed':False,
+                'prices_are_illustrative':True}
+
+@app.post('/api/contracts/{cid}/renew-request')
+def request_renewal(cid:str,info:Renewal,u=Depends(actor)):
+    with db() as c:
+        refresh_expired(c)
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(cid,)).fetchone()
+        if not r:fail(404,'Contract not found')
+        if r['status']!='active':fail(409,'Only active contracts can be renewed')
+        if r['employer_id']!=u['id']:fail(403,'Only the current employer requests renewal')
+        a=get_agent(c,r['agent_id'])
+        if a['owner_id']!=r['owner_id']:fail(409,'Ownership changed, renewal denied')
+        amt=max(100,a['price']*info.months//24)
+        rid=ident('renew')
+        try:
+            c.execute('''INSERT INTO renewal_requests VALUES(?,?,?,?,?,?,?,?)''',
+                      (rid,cid,u['id'],info.months,amt,'pending',now(),None))
+        except sqlite3.IntegrityError:fail(409,'Another renewal request is already pending')
+        event(c,r['agent_id'],u['id'],'renewal_requested',f'Extra {info.months} months proposed for owner approval')
+    return {'request_id':rid,'status':'pending_owner_approval','quoted_credits':amt,
+            'cash_transferred':False}
+
+@app.get('/api/contracts/{cid}/renew-requests')
+def list_renewals(cid:str,u=Depends(actor)):
+    with db() as c:
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(cid,)).fetchone()
+        if not r:fail(404,'Contract not found')
+        if u['id'] not in (r['owner_id'],r['employer_id']) and u['kind']!='platform':fail(403,'Not a contract party')
+        rows=c.execute('SELECT * FROM renewal_requests WHERE contract_id=? ORDER BY requested_at DESC',(cid,)).fetchall()
+        return [dict(row) for row in rows]
+
+@app.post('/api/renewals/{rid}/decide')
+def decide_renewal(rid:str,info:Approve,u=Depends(actor)):
+    with db() as c:
+        req=c.execute('SELECT * FROM renewal_requests WHERE id=?',(rid,)).fetchone()
+        if not req:fail(404,'Renewal request not found')
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(req['contract_id'],)).fetchone()
+        if u['id']!=r['owner_id']:fail(403,'Only the current owner can approve or reject a renewal')
+        if req['status']!='pending':fail(409,'Renewal request already decided')
+        refresh_expired(c)
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(req['contract_id'],)).fetchone()
+        if r['status']!='active':fail(409,'Contract has ended')
+        a=get_agent(c,r['agent_id'])
+        if a['owner_id']!=r['owner_id']:fail(409,'Ownership changed')
+        status='approved' if info.approved else 'rejected'
+        c.execute('UPDATE renewal_requests SET status=?,decided_at=? WHERE id=?',(status,now(),rid))
+        expiry=None
+        if info.approved:
+            expiry=(datetime.fromisoformat(r['expires'])+timedelta(days=30*req['extra_months'])).isoformat()
+            c.execute('UPDATE contracts SET months=months+?,price=price+?,expires=? WHERE id=?',
+                      (req['extra_months'],req['quoted_credits'],expiry,r['id']))
+            ledger(c,r['agent_id'],'rental_extension',r['employer_id'],r['owner_id'],
+                   req['quoted_credits'],'Owner-approved extension; no cash charged')
+        event(c,r['agent_id'],u['id'],f'renewal_{status}',f'Renewal {status} by owner')
+    return {'status':status,'new_expiry':expiry,'cash_transferred':False}
+
+@app.post('/api/contracts/{cid}/buyout-offer')
+def offer_buyout(cid:str,info:BuyoutOffer,u=Depends(actor)):
+    with db() as c:
+        refresh_expired(c)
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(cid,)).fetchone()
+        if not r:fail(404,'Contract not found')
+        if r['status']!='active':fail(409,'Contract not active')
+        if r['owner_id']!=u['id']:fail(403,'Only the owner offers a permanent buyout')
+        a=get_agent(c,r['agent_id'])
+        if a['owner_id']!=u['id']:fail(409,'Current seller does not own the employee')
+        offer_id=ident('bo')
+        try:
+            c.execute('INSERT INTO buyout_offers VALUES(?,?,?,?,?,?,?)',
+                      (offer_id,cid,u['id'],info.price,'open',now(),None))
+        except sqlite3.IntegrityError:fail(409,'An active buyout offer already exists')
+        event(c,r['agent_id'],u['id'],'buyout_offered','Owner issued optional permanent transfer offer')
+    return {'offer_id':offer_id,'quoted_credits':info.price,'status':'open','cash_transferred':False}
+
+@app.get('/api/contracts/{cid}/buyout-offer')
+def read_buyout(cid:str,u=Depends(actor)):
+    with db() as c:
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(cid,)).fetchone()
+        if not r:fail(404,'Contract not found')
+        if u['id'] not in (r['owner_id'],r['employer_id']):fail(403,'Not a contract party')
+        offer=c.execute("SELECT * FROM buyout_offers WHERE contract_id=? AND status='open'",(cid,)).fetchone()
+        if not offer:return {'available':False}
+        return {'available':True,'offer_id':offer['id'],
+                'price_credits':offer['amount'],'cash_transferred':False}
+
+@app.post('/api/contracts/{cid}/buyout-accept')
+def accept_buyout(cid:str,u=Depends(actor)):
+    with db() as c:
+        refresh_expired(c)
+        r=c.execute('SELECT * FROM contracts WHERE id=?',(cid,)).fetchone()
+        if not r:fail(404,'Contract not found')
+        if r['status']!='active':fail(409,'Contract not active')
+        if r['employer_id']!=u['id']:fail(403,'Only the active employer may accept buyout')
+        offer=c.execute("SELECT * FROM buyout_offers WHERE contract_id=? AND status='open'",(cid,)).fetchone()
+        if not offer:fail(409,'No owner-approved buyout offer')
+        agent=get_agent(c,r['agent_id'])
+        if agent['owner_id']!=r['owner_id'] or offer['seller_id']!=r['owner_id']:
+            fail(409,'Original owner no longer holds the employee')
+        allocation=transfer(c,r['agent_id'],r['owner_id'],u['id'],offer['amount'],'buyout')
+        c.execute('UPDATE contracts SET status=? WHERE id=?',('bought_out',cid))
+        c.execute('UPDATE buyout_offers SET status=?,closed_at=? WHERE id=?',('accepted',now(),offer['id']))
+        c.execute('UPDATE agents SET owner_id=?,listed=0 WHERE id=?',(u['id'],r['agent_id']))
+        event(c,r['agent_id'],u['id'],'bought_out','Contract ended in permanent ownership transfer; prior employer data stays private')
+    return {'agent_id':r['agent_id'],'buyer':u['id'],**allocation,
+            'settlement':'SIMULATED—no funds transferred'}
+
+@app.get('/api/me/export')
+def export_my_workplace(u=Depends(actor)):
+    """Export one's own employer notes and task outputs, including past contracts.
+
+    This export never grants access to another employer's workspace and must not
+    be treated as a transferable employee skill package.
+    """
+    with db() as c:
+        notes=c.execute('SELECT id,agent_id,note,created_at FROM vault WHERE employer_id=? ORDER BY created_at DESC',(u['id'],)).fetchall()
+        records=c.execute('SELECT id,agent_id,instruction,output,status,created_at FROM tasks WHERE employer_id=? ORDER BY created_at DESC',(u['id'],)).fetchall()
+    return {'owner':u['id'],'portable':False,'employer_notes':[dict(x) for x in notes],
+            'work_records':[dict(x) for x in records],
+            'privacy':'This user-owned export is private and must not transfer with a resold agent.'}
+
+@app.delete('/api/me/memories/{mid}')
+def delete_my_note(mid:str,u=Depends(actor)):
+    with db() as c:
+        result=c.execute('DELETE FROM vault WHERE id=? AND employer_id=?',(mid,u['id']))
+        if not result.rowcount:fail(404,'No matching note in your workspace')
+    return {'deleted':True,'note_id':mid}

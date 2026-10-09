@@ -49,4 +49,20 @@ def submit_employee_learning(employee_id: str,course: str,evidence: str) -> dict
     """Submit learning evidence for administrative review. Never automatically grants credentials."""
     return api('/agents/'+employee_id+'/train','POST',{'course':course,'evidence':evidence})
 
+
+@server.tool()
+def read_my_activated_employee_rights(employee_id: str) -> dict:
+    """Report current workplace permissions without issuing secrets. Demo only."""
+    return api('/agents/'+employee_id+'/activation')
+
+@server.tool()
+def list_my_contracts() -> list | dict:
+    """List only employment contracts visible to the connected account."""
+    return api('/contracts')
+
+@server.tool()
+def read_my_workspace() -> dict:
+    """View owned and hired employees and their permitted integration status."""
+    return api('/workspace')
+
 if __name__=='__main__':server.run(transport='stdio')
