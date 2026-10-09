@@ -1,46 +1,41 @@
-# AgentVerse Free Public Beta — scope and launch safety
+# AgentVerse Free Public Workspace (v0.4)
 
-The shareable digital workforce workspace is at `/workspace.html` in the existing Cloudflare Worker. It is an **actual editable workspace**, separate from the animated `/` and the `/investor.html` concept walkthrough.
+**Live workspace**: https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/workspace.html  
+**Animated world**: https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/  
+**Investor preview**: https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/investor.html  
+**Local MCP installation**: https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/mcp-setup.html
 
-## What works without an account or a payment
+AgentVerse is a working local-first beta, **not** a production-grade commercial identity-backed marketplace. Users do not need accounts, subscriptions or payment cards for the beta.
 
-- Create, rename, re-role and delete up to 24 digital employee identities on the current device.
-- Give each employee separate operating instructions and up to 80 owner-supplied lessons. Lessons influence prompts for later model calls, but do **not** change model weights or prove accredited skill.
-- Run work assignments through an explicitly labeled offline planning/checklist/extractive tool (works without a provider).
-- When the optional Workers AI binding is available and the free quota is not exhausted, run an **actual LLM inference request** and store the output in your own browser.
-- Review up to 80 stored tasks per employee, delete lessons, export/import portable JSON backups.
-- No login, credit card, payment processor, permanent online account, server-side user histories, or access to other users' data.
-- The animated concept site and the investor tour remain available.
+## First five minutes
 
-## Local-first privacy and caveats
+1. Open `/workspace.html` in your browser. New visitors receive two starter digital employees. Six role templates are available without registration.
+2. Choose a role, open **Knowledge**, upload plain text/Markdown/CSV/JSON/log, or paste your own reference document. Supported knowledge is local to your browser and selected employee.
+3. Under **Teach**, add process rules or corrections for that employee. They affect the next AI prompt; **not** the underlying model weights.
+4. Under **Work**, enter a task; AgentVerse searches local documents and shows relevant source titles. Select **Cloud AI** for a real response within shared free quota, or **Offline** for deterministic document search/planning/checklist.
+5. Review results, rate the work in **History**, optionally give additional instruction, then **Export all employees** as a JSON backup.
 
-- Agent records are saved in browser localStorage. They are NOT synced across machines, not centrally backed up, and not safe as the sole copy of valuable data. Users must export JSON backups. Browser data clearing and private-browsing sessions can delete records.
-- Browser code is not a secure multi-tenant employer vault. Do not submit client secrets, confidential documents, regulated or high-risk personal data.
-- **AI mode sends the selected agent role, instructions, recent user-supplied lessons and assignment to Cloudflare's model infrastructure**. Users must consent by selecting AI mode. Never silently send background prompts.
-- Model outputs can be inaccurate or unsafe; require human review. The app cannot access files, run arbitrary code, browse websites, install software, fine-tune weights, or execute third-party actions.
-- Training is context memory (prompting), not actual model fine-tuning. User-submitted lessons are never labeled independently verified.
-- The existing Python FastAPI/SQLite backend stays **private and local-only** until a separate production-security project (identity, tenant isolation, encryption, backups, abuse protection and audit) is complete.
-- The proprietary copyright and ownership under **Md Najmul Hossain** remain unchanged. Free platform access does not grant a source redistribution or resale license.
+## Moving between computers and AI clients
 
-## Cost and fair use
+Use Export/Import to transport employees, their knowledge, lessons and work history. Data stays in each browser's IndexedDB storage; no automatic cloud sync is configured.
 
-- Static website and Worker requests run on Cloudflare Workers Free plan limits.
-- Workers AI Free includes **10,000 Neurons per day** (provider terms as of October 2026). Requests fail at free quotas; users can switch to offline mode. No paid plan or billing upgrade should be enabled.
-- Worker has **2 AI calls per minute per IP** and **12 per minute globally**, as best-effort protective limits. These are not billing guarantees. Maximum AI request size and model output tokens are also capped.
-- Do not advertise unlimited free AI. Free plan service can be exhausted, throttled or unavailable.
+For ChatGPT Web/desktop, click **ChatGPT & PC**, copy the employee's compiled prompt and paste it into a normal ChatGPT conversation. Optionally paste the response back into AgentVerse. This is a manual workflow: ChatGPT subscriptions are not reusable model API credentials.
 
-## Deployment instructions for owner
+For a local stdio MCP-capable client such as Claude Desktop, download `/downloads/agentverse-mcp.mjs`, install Node.js 20+, export your JSON backup, and follow `/mcp-setup.html`. Read-only context lookup does not require local payment or keys. MCP write actions require explicit approval and create a *new* backup file. ChatGPT remote MCP is not deployed and is not automatically connected to this local bridge.
 
-Root of repository must be the Cloudflare Workers Git build root: `./` (not `./public`). The Wrangler configuration itself specifies `assets.directory = "./public"`; this safely isolates public files. Build command is blank and deploy command is `npx wrangler deploy`.
+## Technical and security limitations
 
-1. Keep the repository private and the Cloudflare service on **Free** plan.
-2. Deploy `main` with `wrangler.jsonc`, `worker/index.mjs` and static files in `public/`.
-3. Cloudflare must accept a Workers AI binding called `AI` and two Rate Limiting bindings `PER_IP` and `GLOBAL_AI` as specified in Wrangler. If binding setup fails, leave the existing static site intact and debug in a test environment; do not enable paid services.
-4. Test `GET /api/engine/status`, `POST /api/engine/run` from same origin, and `GET /workspace.html`; verify a real model response, rate-limit denial, export/import, and mobile usability.
-5. Monitor Workers/Workers AI free allowance and check that no accidental paid plan was enabled.
+- Document ingestion supports readable files, not PDF/DOCX, scanning, screenshots, web crawling or privileged file access.
+- Retrieval is lexical matching over local text passages with source labels, not embeddings or scholarly fact verification.
+- Model inference is a Cloudflare-hosted shared model subject to the **Free plan quota and best-effort rate limits**. AI may stop responding without warning when shared quota is used. Offline work still works. No paid fallback should be enabled.
+- The app cannot act autonomously on a PC, modify arbitrary code repositories, browse the web, execute terminal commands, create cloud accounts, run private APIs or train model weights by itself.
+- Private data should **not** be uploaded to shared AI; when Cloud AI is selected, relevant lessons and excerpts leave the browser for inference on Cloudflare infrastructure. AgentVerse does not maintain server-side work history. Exported JSON backups are not encrypted.
+- Authenticated Python/FastAPI multi-tenant prototype remains local-only; its demo credentials and database must not be deployed publicly.
+- Browser storage can be deleted on site data clearing, disk cleanup, private browsing sessions or device loss. Regularly export backups.
+- Copyright and product ownership remain with **Md Najmul Hossain**. Free access does not transfer IP or grant unrestricted source redistribution rights.
 
-For local testing: `node --test tests/*.test.mjs` and `python -m http.server 8000 --directory public` (offline tools work but AI route requires the Worker).
+## Operations
 
-## Future production architecture
+GitHub-connected Cloudflare Worker deploys from **repository root** with blank build command and `npx wrangler deploy`. `wrangler.jsonc` serves only `public/` static assets and one isolated Worker AI gateway via `worker/index.mjs`. Rate-limiting bindings and AI bindings must be present. Do not change the project to a paid plan or expose the Python demo.
 
-Public cloud accounts, payment transactions and multi-tenant employer secrets need a separate identity-backed durable database, recovery/backups, verified learning/evaluation, server-side contract ownership, threat modeling and legal/privacy review. Cloudflare D1 Free can provide an experimental database, but production requirements and limits must be assessed independently. Do not reuse demo credentials on public endpoints.
+See [WORKING_BETA_READINESS.md](WORKING_BETA_READINESS.md) for exact test evidence and remaining production security gates. Use `node --test tests/*.test.mjs` for the engine and Worker tests, and `python tests/test_local_mcp.py` for local MCP integration.

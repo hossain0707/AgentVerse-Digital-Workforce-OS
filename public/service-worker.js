@@ -1,6 +1,6 @@
 /* AgentVerse public beta offline shell. Never cache API / inference requests or user data. */
-const CACHE='agentverse-workspace-shell-v0.3.0';
-const SHELL=['/workspace.html','/engine.css','/engine-app.mjs','/engine-core.mjs','/agentverse-icon.svg'];
+const CACHE='agentverse-workspace-shell-v0.4.0';
+const SHELL=['/workspace.html','/engine.css','/engine-app.mjs','/engine-core.mjs','/agentverse-icon.svg','/workspace.webmanifest'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });

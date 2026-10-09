@@ -11,3 +11,30 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}button:focus-vis
 
 dialog{width:min(440px,calc(100vw - 24px));border:1px solid #5e8d91;border-radius:17px;background:#12253a;color:#eaf7ff;padding:25px;box-shadow:0 20px 70px #000a}dialog::backdrop{background:#030816b9}dialog h2{margin:0 0 15px}dialog .field{margin:10px 0}
 .field[hidden]{display:none!important}
+/* v0.4 employee knowledge workspace additions */
+.quickstart,.preset-section{border:1px solid #31556e;background:linear-gradient(125deg,#17334b,#111f32);border-radius:16px;padding:18px;margin-bottom:16px}
+.quickstart{display:flex;justify-content:space-between;gap:15px;align-items:center}
+.quickstart p,.preset-section p{margin:4px 0 0;color:#b7cbe0;font-size:12px}
+.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.preset{border:1px solid #385269;border-radius:12px;background:#10243a;color:#edfaff;padding:14px;text-align:left;cursor:pointer;transition:background .2s}
+.preset:hover{background:#1b3d51;border-color:#75dacc}
+.preset strong,.preset span{display:block}
+.preset strong{font-size:14px;margin-bottom:4px}.preset span{font-size:11px;color:#b0c7da}.preset small{color:#7be0ce;display:block;margin-top:8px}
+.source-preview{margin:12px 0 0;padding:12px;border:1px dashed #496b75;border-radius:11px;background:#0b2231;color:#bcd7e6;font-size:12px;line-height:1.5}
+.notice.smaller{margin-bottom:12px;font-size:11px}.top-actions{margin:5px 0 20px}
+.section-sub{margin:22px 0 9px}.section-sub h3{margin:0;font-size:15px;display:flex;align-items:center;gap:10px}
+.document{border:1px solid #2f5369;background:#101f35;border-radius:12px;padding:14px;margin:10px 0}
+.document h3{font-size:14px;margin:0}.document .meta{color:#a2bad6;font-size:11px;margin:5px 0}.document p{font-size:12px;color:#c0d3e6;white-space:pre-wrap;overflow-wrap:anywhere;max-height:140px;overflow:auto}
+.connection{border:1px solid #385267;background:#102339;border-radius:12px;padding:17px;margin:12px 0}.connection h3{margin:0 0 8px;font-size:16px}.connection p{font-size:12px;color:#b1c7de}.connection a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.task-review{margin-top:10px;padding-top:10px;border-top:1px solid #334b63}.task-review select{border:1px solid #45617a;background:#091a2b;border-radius:7px;color:#edf9ff;padding:7px}
+.task-review textarea{min-height:52px;resize:vertical;width:100%;border:1px solid #435976;border-radius:8px;background:#081727;color:#eaf6ff;padding:8px;margin-top:8px}
+.storage-status{margin-top:9px}.storage-tip{font-size:11px;margin-top:15px;color:#a9c5d7;padding:10px;border:1px dashed #3a556c;border-radius:9px}
+.warning{background:#442835;border:1px solid #ab6a6d;border-radius:12px;padding:14px 17px;color:#ffe7e8;margin-bottom:16px}
+.warning[hidden]{display:none}
+@media(max-width:900px){.presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.quickstart{flex-direction:column;align-items:stretch}.presets{grid-template-columns:1fr}.notice.smaller{font-size:11px}}
+
+.notice{padding:14px 16px;margin:10px 0 17px;border-radius:12px;border:1px solid #50687c;background:#182d42;color:#c9dcef;font-size:12px;line-height:1.65}.notice b{color:#e5f8ff}.connection .actions a.btn{padding:10px 14px}.connection code{color:#b5f3e2}
+/* active tasks, reduced motion and focus visibility */
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #84f6da;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0.01ms!important;transition-duration:0.01ms!important}}

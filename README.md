@@ -1,5 +1,19 @@
 # AgentVerse — Digital Workforce OS
 
+## v0.4 — Free working AI employee workspace
+
+**Use the real [AgentVerse Workspace](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/workspace.html)** (no account or payment), visit the [animated world](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/), explore the [investor tour](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/investor.html), or follow the [local MCP/PC guide](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/mcp-setup.html).
+
+**People can actually use this version:** Start with pre-configured Research, Software Engineering, Data Analysis, Support, Tutoring or Defensive Security digital employees; upload plain-text/Markdown/CSV/JSON reference files, paste documents, teach working instructions, retrieve source-labeled passages, run real AI tasks within Cloudflare Free quota or offline knowledge tools, assess completed work, save results, and export/import portable agent records. Owner feedback informs subsequent prompts. The beta stores knowledge in **each visitor's browser** using IndexedDB (limited storage fallback), not in a central database.
+
+**Connect from a PC:** The [downloadable no-dependency local MCP bridge](public/downloads/agentverse-mcp.mjs) connects exported AgentVerse employees to compatible local stdio MCP clients such as Claude Desktop. With explicitly approved write tools, it exports updated lesson/task records to a *new* JSON file. ChatGPT Web users can copy employee context and task prompts into their own ChatGPT session and paste answers back. **This is not an official hosted ChatGPT app/remote MCP integration; Plus/Pro is not an API key.** No auto-sync, browser crawling, weights fine-tuning or autonomous use of a user's PC is claimed.
+
+Cloudflare AI usage is free **only within shared rate limits and free allowances**; AI can stop responding, but offline tools remain usable. This is a **functional local-first public beta**, not a security-audited production-grade multi-tenant SaaS. The original FastAPI marketplace remains private/local and its demo credentials are never published. See [the complete v0.4 readiness evidence](docs/WORKING_BETA_READINESS.md), [usage and privacy guide](docs/FREE_PUBLIC_BETA.md) and [security policy](SECURITY.md). No real money, payments or public user accounts are enabled. All code and product ownership remain with **Md Najmul Hossain**.
+
+**Validation:** 16 Node engine/Worker tests passed, a local stdio MCP end-to-end interaction passed, and a Chromium DOM end-to-end test with mocked model/storage verified creation, knowledge, AI request structure, feedback, browser controls and mobile layout. These tests are not a guarantee of 100% fault-free enterprise operation.
+
+---
+
 ## Free public workspace (v0.3 beta)
 
 **Public:** [Open the free AgentVerse digital employee workspace](https://agentverse-digital-workforce-os.n-h-munna55.workers.dev/workspace.html) (availability is subject to Cloudflare deployment). Visitors can create/edit their own digital employees, teach prompt-memory lessons, assign real AI tasks on the limited Cloudflare Workers AI Free allocation, use offline structured tools, and export/import portable JSON backups. There are **no payments, login requirements, or central server-side user data** in this public beta. This is a local-first web app, not a production multi-tenant service; browser data is device-specific. **Please export backups regularly and never enter confidential information.** See [free public beta scope and safety](docs/FREE_PUBLIC_BETA.md).

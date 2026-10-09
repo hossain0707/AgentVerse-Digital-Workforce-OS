@@ -30,3 +30,7 @@ Contact the repository owner through private channels. Do not submit private use
 ## Free public beta (Cloudflare Worker)
 
 The new public `/workspace.html` is **local-first**, not a production multi-tenant server. Its lessons, agents and history are saved in each browser; there is no cloud account or backup. Its AI endpoint uses a specific Workers AI Free-plan model, input/output caps, same-origin checks and best-effort global/per-IP rate limiting. No payments, open API keys, stored user secrets, employer authorization claims, or Python backend are exposed. Only explicit AI-mode tasks leave the browser. See [the scope and launch-safety document](docs/FREE_PUBLIC_BETA.md).
+
+## v0.4 public local-first workspace boundaries
+
+The public `/workspace.html` uses browser-local knowledge/lessons/history and a bounded Workers AI endpoint. It does not deploy the Python FastAPI prototype, SQLite database or demo credentials. It does NOT store individual users in a centralized cloud database, implement tenant isolation across a shared server, or promise encrypted employer vaults. Source excerpts and owner feedback are explicitly unverified. Prompts sent in Cloud AI mode are processed by Cloudflare; users must not submit client secrets or sensitive records. The downloadable local stdio MCP bridge only reads an explicitly selected JSON export and writes a separate new export after explicit approval. Its local access does not constitute a hosted ChatGPT MCP app or verified client security. See [v0.4 launch evidence](docs/WORKING_BETA_READINESS.md).
