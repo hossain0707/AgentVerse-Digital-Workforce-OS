@@ -1,0 +1,9 @@
+services:
+  agentverse:
+    build: .
+    environment:
+      AGENTVERSE_DEMO: "1"  # LOCAL ONLY. Never expose publicly with demo accounts.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
