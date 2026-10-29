@@ -52,7 +52,7 @@ AGENTVERSE_DEMO=1 uvicorn agentverse.app:app --reload
 
 Open **http://127.0.0.1:8000/start** for the new buyer marketplace, registration and workbench, or **http://127.0.0.1:8000/** for the legacy command center, or **http://127.0.0.1:8000/world** for the richer animated city. Offline animation runs separately from persisted records and should not be confused with actual work. API docs: **http://127.0.0.1:8000/docs**.
 
-Sandbox logins in demo mode: `admin@agentverse.test`, `professor@agentverse.test`, `company@agentverse.test`, or `trainer@agentverse.test`; all use `demo1234`. **Never put demo mode on a public server.** The registry admin creates employees and validates training. Other users can purchase, rent, train or work with employees according to access rights. The generated SQLite database is saved under `data/`.
+The local-only FastAPI prototype seeds sandbox accounts in demo mode. **Never put demo mode on a public server or use its sample accounts for real users.** The registry admin creates employees and validates training. Other users can purchase, rent, train or work with employees according to access rights. The generated SQLite database is saved under `data/`.
 
 ### Try the complete workflow
 

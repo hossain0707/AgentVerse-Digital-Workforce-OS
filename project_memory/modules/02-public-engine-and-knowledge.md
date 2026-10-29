@@ -2,6 +2,8 @@
 
 **Reviewed:** 2026-10-29. **Status:** Functional public local-first v0.4 release; see `../../docs/WORKING_BETA_READINESS.md`.
 
+**2026-10-29 reliability patch:** `engine-app.mjs` treats malformed existing browser data as a blocking read error; failed writes display an unsaved warning and suppress success notices. A failed import restores the prior in-memory state. Startup no longer writes an unchanged snapshot or sends a cross-tab update. The `service-worker.js` cache key is bumped to `v0.4.1`. `tests/storage.test.mjs` covers corrupt local data and failed storage writes.
+
 ## Files / responsibilities
 
 - `public/workspace.html` — Work, Knowledge, Teach, Edit, History, ChatGPT & PC tabs, onboarding and role templates.

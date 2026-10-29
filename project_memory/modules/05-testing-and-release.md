@@ -2,6 +2,8 @@
 
 **Reviewed:** 2026-10-29. Distinguish previous release tests from any tests actually run today.
 
+**2026-10-29 local check:** `node --test tests/*.test.mjs` passed 18/18 after the storage change; `python tests/test_local_mcp.py` passed. `python -m pytest -q` could not run because `pytest` is not installed in this environment. No live browser, Cloudflare inference, load or penetration test was performed for this patch.
+
 ## Verified / reported evidence
 
 | Evidence | Result | When / limitations |

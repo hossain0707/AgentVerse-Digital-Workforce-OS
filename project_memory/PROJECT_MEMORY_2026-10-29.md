@@ -1,5 +1,12 @@
 # AgentVerse — Dated Project Memory / 2026-10-29
 
+## Later session: public workspace reliability work
+
+- User requested development toward real use. Current scope: protect browser-local work against silent reset and failed-save misreporting, without adding paid services or exposing the local Python backend.
+- Local changes: fail closed on malformed existing backup/snapshot; show unsaved status on write errors; avoid redundant startup write and cross-tab stale signal; restore prior state on failed import; bump PWA cache key; remove demo login details from README; correct stale public repository label in deployment notes.
+- Fresh local checks: `node --test tests/*.test.mjs` passed 18/18 and `python tests/test_local_mcp.py` passed. `python -m pytest -q` was blocked by missing `pytest`. Browser E2E and live Cloudflare inference were not run. Commit, push and deployment need verification before calling this publicly deployed.
+- Remaining real-use gates: account identity, central durable storage and recovery, tenant isolation, authenticated remote MCP, controlled marketplace contracts, independent security/privacy and load review. Free browser-local beta remains the release scope.
+
 ## Session scope
 
 User requested a detailed AgentVerse Markdown project handover uploaded to GitHub, following the recent Falvorn AI convention: **root `PROJECT_MEMORY.md`**, dated memory under `project_memory/`, module histories, and explicit developer/agent maintenance instructions. This documentation task does not ask for application modifications or a paid deployment.

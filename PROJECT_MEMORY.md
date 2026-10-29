@@ -8,6 +8,8 @@
 > **Owner / copyright:** Md Najmul Hossain. `LICENSE`: proprietary; all rights reserved.  
 > **GitHub visibility warning:** The GitHub connector reported **PUBLIC** on 2026-10-29; earlier README/deployment documentation describes the repository as private, which is now stale. Do not assume privacy. Do not change visibility without explicit permission.
 
+> **2026-10-29 development work:** A local reliability patch prevents malformed browser snapshots from being silently replaced by starter data, reports failed writes as unsaved, and avoids a redundant save on page load. It also refreshes the service worker cache and removes local demo credentials from the README. This patch is not a hosted SaaS release. See the dated memory for test and deployment status.
+
 ## 1. Executive project identity
 
 **AgentVerse — Digital Workforce OS** is an independent AI digital employee platform, not the user's NEXUS-100 orchestration system and not Falvorn AI. Its long-term vision is a marketplace and education/career operating system where digital employee identities persist over time, accumulate evidence-backed skills, perform authorized work, use model and tool integrations, and may be hired, rented, licensed, or transferred under controlled contracts. Users should be able to create, educate, edit, operate, assess, and port AI employees across compatible environments. Future institutional training, employer isolation, resales and contributor rewards are *planned product capabilities*, not current live-service guarantees.
